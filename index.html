@@ -51,6 +51,14 @@
   .bar{height:5px;background:var(--bg);border-radius:99px;margin-top:6px;overflow:hidden}
   .bar>div{height:100%;background:var(--yellow);border-radius:99px}
   .dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+  .prow{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+  .prow input{flex:1}
+  .rm{width:44px;height:48px;flex-shrink:0;border-radius:12px;background:transparent;border:1.5px solid var(--border);
+    color:var(--muted);font-size:18px;cursor:pointer}
+  .pcard{display:flex;align-items:center;gap:14px;width:100%;padding:16px;border:none;border-radius:12px;
+    margin-bottom:10px;cursor:pointer;text-align:left}
+  .pcard .av{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-family:var(--sans);font-size:20px;font-weight:800;color:#0D0D0D;flex-shrink:0}
 </style>
 </head>
 <body>
@@ -76,9 +84,10 @@
           </ul>
         </div>
         <div class="label" style="margin-top:18px">Os duelistas</div>
-        <input id="p1" maxlength="16" placeholder="Nome do jogador 1" autocomplete="off">
-        <div style="height:10px"></div>
-        <input id="p2" maxlength="16" placeholder="Nome do jogador 2" autocomplete="off">
+        <datalist id="known"></datalist>
+        <div id="plist"></div>
+        <button class="btn ghost" id="addp" style="margin-top:2px">+ Adicionar jogador</button>
+
         <div class="label" style="margin-top:18px">Contagem</div>
         <div class="row" id="cdopts"></div>
         <div style="height:16px"></div>
@@ -105,9 +114,7 @@
       <div style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:1px">QUEM VENCEU?</div>
       <div style="font-family:var(--sans);font-size:17px;font-weight:800;color:var(--yellow);margin-top:3px">Split the S</div>
     </div>
-    <button class="half" id="half1"></button>
-    <div style="height:1px;background:var(--border);flex-shrink:0"></div>
-    <button class="half" id="half2"></button>
+    <div id="pickwrap" style="flex:1;min-height:0;display:flex;flex-direction:column"></div>
     <div style="flex-shrink:0;padding:12px 16px calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--border)">
       <button class="btn ghost" id="cancel2" style="color:var(--danger);border-color:rgba(239,68,68,.4)">Cancelar duelo</button>
     </div>
@@ -191,28 +198,38 @@ function net(ok,msg){
   }catch(e){ net(false,"sem ligação — ranking local"); paint([]); }
 })();
 
-async function record(winner,loser){
+async function record(winner, losers){
+  const all = [{n:winner,k:"w"}].concat(losers.map(n => ({n:n,k:"l"})));
   if (!db || !online){
-    [[winner,"w"],[loser,"l"]].forEach(pair => {
-      const n = pair[0], k = pair[1], id = norm(n);
-      local[id] = local[id] || { id, name:n, w:0, l:0 };
-      local[id][k]++; local[id].name = n;
+    all.forEach(x => {
+      const id = norm(x.n);
+      local[id] = local[id] || { id:id, name:x.n, w:0, l:0 };
+      local[id][x.k]++; local[id].name = x.n;
     });
     paint(Object.keys(local).map(k => local[k]));
     return;
   }
   try{
     await runTransaction(db, async tx => {
-      const wr = doc(db,"splitS",norm(winner)), lr = doc(db,"splitS",norm(loser));
-      const ws = await tx.get(wr), ls = await tx.get(lr);
-      const wd = ws.data() || {}, ld = ls.data() || {};
-      tx.set(wr,{ name:winner, w:(wd.w||0)+1, l:wd.l||0, at:serverTimestamp() });
-      tx.set(lr,{ name:loser,  w:ld.w||0, l:(ld.l||0)+1, at:serverTimestamp() });
+      const refs = all.map(x => doc(db,"splitS",norm(x.n)));
+      const snaps = [];
+      for (let i=0;i<refs.length;i++) snaps.push(await tx.get(refs[i]));  // ler tudo primeiro
+      for (let i=0;i<refs.length;i++){
+        const d = snaps[i].data() || {};
+        tx.set(refs[i], {
+          name: all[i].n,
+          w: (d.w||0) + (all[i].k === "w" ? 1 : 0),
+          l: (d.l||0) + (all[i].k === "l" ? 1 : 0),
+          at: serverTimestamp(),
+        });
+      }
     });
   }catch(e){}
 }
 
 function paint(list){
+  const dl = $("known");
+  if (dl) dl.innerHTML = list.map(p => '<option value="'+esc(p.name||p.id)+'">').join("");
   const rows = list.filter(p => (p.w||0)+(p.l||0) > 0)
                    .sort((a,b) => (b.w||0)-(a.w||0) || (a.l||0)-(b.l||0));
   const box = $("lb");
@@ -234,9 +251,36 @@ function paint(list){
 }
 
 /* ── jogo ── */
-let P = ["",""], CD = 3, timer = null;
+let P = [], CD = 3, timer = null;
+const COLORS = ["#FFD60A","#7C3AED","#22C55E","#EF4444","#38BDF8","#F97316","#EC4899","#A3E635"];
 const SCREENS = ["s-setup","s-count","s-pick","s-result","s-lb"];
 const show = id => { SCREENS.forEach(s => $(s).classList.remove("on")); $(id).classList.add("on"); };
+
+/* lista dinâmica de jogadores */
+let slots = ["",""];
+function renderSlots(){
+  const box = $("plist");
+  box.innerHTML = slots.map((v,i) =>
+    '<div class="prow"><input list="known" maxlength="16" autocomplete="off" data-i="'+i+'" '+
+    'placeholder="Jogador '+(i+1)+'" value="'+esc(v)+'">'+
+    (slots.length > 2 ? '<button class="rm" data-rm="'+i+'">✕</button>' : '') + '</div>'
+  ).join("");
+  Array.prototype.forEach.call(box.querySelectorAll("input"), inp => {
+    inp.oninput = e => { slots[+e.target.dataset.i] = e.target.value; check(); };
+  });
+  Array.prototype.forEach.call(box.querySelectorAll("[data-rm]"), b => {
+    b.onclick = () => { slots.splice(+b.dataset.rm,1); renderSlots(); check(); };
+  });
+  $("addp").style.display = slots.length >= 8 ? "none" : "block";
+  check();
+}
+function check(){
+  const filled = slots.filter(s => s.trim()).length;
+  $("go").disabled = filled < 2 || filled !== slots.filter(s=>s.trim()).length || slots.some(s=>!s.trim());
+  $("go").textContent = filled >= 2 ? ("Começar duelo (" + filled + ") →") : "Começar duelo →";
+}
+$("addp").onclick = () => { if (slots.length < 8){ slots.push(""); renderSlots(); } };
+renderSlots();
 
 [3,5,10].forEach(n => {
   const b = document.createElement("button");
@@ -252,9 +296,6 @@ function paintCd(){
   });
 }
 paintCd();
-
-const check = () => { $("go").disabled = !($("p1").value.trim() && $("p2").value.trim()); };
-$("p1").oninput = check; $("p2").oninput = check;
 
 function beep(f,d){
   try{
@@ -277,7 +318,7 @@ function tickUI(n){
 }
 function start(){
   show("s-count");
-  $("cd-names").textContent = P[0]+"  vs  "+P[1];
+  $("cd-names").textContent = P.join("  vs  ");
   let n = CD; $("cd-sub").textContent = "PREPARAR"; tickUI(n);
   timer = setInterval(() => {
     n--;
@@ -292,25 +333,54 @@ function start(){
 }
 function abort(){ if (timer){ clearInterval(timer); timer = null; } show("s-setup"); }
 
-function half(el,name,sub,color,anim){
-  let t = "";
-  for (let i=0;i<3;i++){
-    t += '<div class="train" style="top:'+(18+i*27)+'%;animation:'+anim+' '+(11+i*5)+'s ease-in-out '+(-i*4)+'s infinite alternate">'+
-      '<i style="background:'+color+'"></i><i style="background:'+color+'"></i>'+
-      '<i style="background:'+color+'"></i><i style="background:'+color+'"></i></div>';
-  }
-  el.style.background = "linear-gradient(160deg,"+color+"22,#0D0D0D)";
-  el.innerHTML = t + '<div style="position:relative;text-align:center;width:100%">'+
-    '<div style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:1px;margin-bottom:10px">'+sub+'</div>'+
-    '<div class="avatar" style="background:'+color+'">'+esc(name.charAt(0).toUpperCase())+'</div>'+
-    '<div class="pname">'+esc(name)+'</div>'+
-    '<div class="pill" style="background:'+color+'22;border:1.5px solid '+color+'66;color:'+color+'">🏆 Venceu</div></div>';
-}
+/* ecrã de escolha: 2 jogadores = metades; 3+ = lista */
 function pick(){
-  half($("half1"),P[0],"DUELISTA 1","#FFD60A","trainL");
-  half($("half2"),P[1],"DUELISTA 2","#7C3AED","trainR");
+  const wrap = $("pickwrap");
+  wrap.innerHTML = "";
+  if (P.length === 2){
+    P.forEach((name,i) => {
+      const color = COLORS[i];
+      const b = document.createElement("button");
+      b.className = "half";
+      b.style.background = "linear-gradient(160deg,"+color+"22,#0D0D0D)";
+      let t = "";
+      for (let k=0;k<3;k++){
+        t += '<div class="train" style="top:'+(18+k*27)+'%;animation:'+(i===0?"trainL":"trainR")+' '+
+          (11+k*5)+'s ease-in-out '+(-k*4)+'s infinite alternate">'+
+          '<i style="background:'+color+'"></i><i style="background:'+color+'"></i>'+
+          '<i style="background:'+color+'"></i><i style="background:'+color+'"></i></div>';
+      }
+      b.innerHTML = t + '<div style="position:relative;text-align:center;width:100%">'+
+        '<div class="avatar" style="background:'+color+'">'+esc(name.charAt(0).toUpperCase())+'</div>'+
+        '<div class="pname">'+esc(name)+'</div>'+
+        '<div class="pill" style="background:'+color+'22;border:1.5px solid '+color+'66;color:'+color+'">🏆 Venceu</div></div>';
+      b.onclick = () => win(i);
+      wrap.appendChild(b);
+      if (i === 0){
+        const sep = document.createElement("div");
+        sep.style.cssText = "height:1px;background:var(--border);flex-shrink:0";
+        wrap.appendChild(sep);
+      }
+    });
+  } else {
+    const list = document.createElement("div");
+    list.className = "scroll pad";
+    list.innerHTML = P.map((name,i) => {
+      const color = COLORS[i % COLORS.length];
+      return '<button class="pcard" data-i="'+i+'" style="background:linear-gradient(120deg,'+color+'22,var(--surface))">'+
+        '<div class="av" style="background:'+color+'">'+esc(name.charAt(0).toUpperCase())+'</div>'+
+        '<div style="flex:1;min-width:0"><div style="font-family:var(--sans);font-size:20px;font-weight:800;'+
+        'white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(name)+'</div></div>'+
+        '<div style="font-size:20px;flex-shrink:0">🏆</div></button>';
+    }).join("");
+    wrap.appendChild(list);
+    Array.prototype.forEach.call(list.querySelectorAll(".pcard"), b => {
+      b.onclick = () => win(+b.dataset.i);
+    });
+  }
   show("s-pick");
 }
+
 function drop(color){
   const w = $("res-wrap");
   Array.prototype.forEach.call(w.querySelectorAll(".confetti"), n => n.remove());
@@ -323,24 +393,6 @@ function drop(color){
   }
 }
 function win(i){
-  const w = P[i], l = P[1-i], color = i===0 ? "#FFD60A" : "#7C3AED";
+  const w = P[i], losers = P.filter((_,k) => k !== i), color = COLORS[i % COLORS.length];
   $("res-name").textContent = w; $("res-name").style.color = color;
-  $("res-sub").textContent = online ? "Guardado no ranking" : "Guardado só neste telemóvel";
-  beep(660,.25); setTimeout(() => beep(880,.45),140); buzz([60,50,120]);
-  show("s-result"); drop(color); record(w,l);
-}
-
-/* ── ligações ── */
-$("go").onclick      = () => { P = [$("p1").value.trim(), $("p2").value.trim()]; start(); };
-$("half1").onclick   = () => win(0);
-$("half2").onclick   = () => win(1);
-$("cancel1").onclick = abort;
-$("cancel2").onclick = abort;
-$("again").onclick   = start;
-$("newp").onclick    = () => show("s-setup");
-$("lbbtn").onclick   = () => show("s-lb");
-$("lbbtn2").onclick  = () => show("s-lb");
-$("closelb").onclick = () => show("s-setup");
-</script>
-</body>
-</html>
+  $("res-sub").textContent = (online ? "Guardado no ranking" : "Gua
