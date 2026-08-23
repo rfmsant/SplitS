@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0D0D0D">
+<title>Split the S 🍺</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0D0D0D; --soft:#161616; --surface:#1C1C1C; --border:#2A2A2A;
+    --yellow:#FFD60A; --violet:#7C3AED; --danger:#EF4444; --success:#22C55E;
+    --muted:#6B6B6B; --mutedL:#A0A0A0; --text:#fff;
+    --sans:'Syne',sans-serif; --body:'DM Sans',sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--text);font-family:var(--body);overflow:hidden}
+  .app{height:100dvh;display:flex;flex-direction:column;max-width:520px;margin:0 auto}
+  .screen{flex:1;min-height:0;display:none;flex-direction:column}
+  .screen.on{display:flex}
+  .pad{padding:20px 18px}
+  .scroll{flex:1;min-height:0;overflow-y:auto}
+  h1{font-family:var(--sans);font-weight:800;line-height:1;letter-spacing:-.02em}
+  .label{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;font-family:var(--sans)}
+  .card{background:var(--surface);border-radius:12px;padding:16px;margin-bottom:10px}
+  input{width:100%;padding:14px 16px;background:var(--surface);border:1.5px solid var(--border);color:var(--text);
+    font-family:var(--body);font-size:15px;border-radius:12px;outline:none}
+  input:focus{border-color:var(--yellow);background:var(--soft)}
+  input::placeholder{color:var(--muted)}
+  .btn{width:100%;padding:16px 20px;border:none;border-radius:12px;font-family:var(--sans);font-weight:700;
+    font-size:15px;cursor:pointer;background:var(--yellow);color:#0D0D0D}
+  .btn:active{transform:scale(.97)}
+  .btn:disabled{background:var(--border);color:var(--muted)}
+  .btn.ghost{background:transparent;border:1.5px solid var(--border);color:var(--mutedL);font-family:var(--body);
+    font-weight:500;font-size:14px;padding:12px 16px}
+  .btn.red{background:var(--danger);color:#fff}
+  .row{display:flex;gap:8px}
+
+  /* ── SETUP ── */
+  .hero{text-align:center;padding:26px 18px 18px}
+  .glass{font-size:56px;line-height:1;margin-bottom:10px;display:block}
+  .rules li{font-size:13px;color:var(--mutedL);line-height:1.7;margin-left:18px;margin-bottom:4px}
+
+  /* ── COUNTDOWN ── */
+  #count{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+  .cnum{font-family:var(--sans);font-size:150px;font-weight:800;color:var(--yellow);line-height:1;
+    animation:pop .6s ease}
+  @keyframes pop{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.15);opacity:1}100%{transform:scale(1)}}
+
+  /* ── SPLIT PICKER ── */
+  .half{flex:1;position:relative;overflow:hidden;border:none;cursor:pointer;width:100%;
+    display:flex;align-items:center;justify-content:center;padding:18px 22px;background:transparent}
+  .train{position:absolute;left:0;display:flex;gap:7;width:max-content;opacity:.18;pointer-events:none;will-change:transform}
+  .train i{display:block;width:42px;height:15px;border-radius:4px;margin-right:7px}
+  .train i:first-child{width:54px;border-radius:5px 9px 9px 5px}
+  @keyframes trainL{from{transform:translateX(-260px)}to{transform:translateX(100vw)}}
+  @keyframes trainR{from{transform:translateX(100vw)}to{transform:translateX(-260px)}}
+  .avatar{width:62px;height:62px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-family:var(--sans);font-size:26px;font-weight:800;color:#0D0D0D;margin:0 auto 12px}
+  .pname{font-family:var(--sans);font-size:30px;font-weight:800;line-height:1.1;word-break:break-word}
+  .pill{display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:8px 18px;border-radius:99px;
+    font-size:13px;font-weight:700;font-family:var(--sans)}
+
+  /* ── RESULT ── */
+  .confetti{position:absolute;top:0;width:9px;height:15px;border-radius:2px}
+  @keyframes fall{0%{transform:translateY(-20px) rotate(0);opacity:1}100%{transform:translateY(110vh) rotate(720deg);opacity:0}}
+  .big{font-family:var(--sans);font-size:64px;font-weight:800;line-height:1;color:var(--success)}
+  .score{display:flex;gap:10px;margin:18px 0}
+  .score>div{flex:1;background:var(--soft);border-radius:12px;padding:14px 10px;text-align:center}
+  .score b{display:block;font-family:var(--sans);font-size:34px;font-weight:800}
+  .score span{font-size:11px;color:var(--muted);font-weight:600}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ══ SETUP ══ -->
+  <section class="screen on" id="s-setup">
+    <div class="scroll">
+      <div class="hero">
+        <span class="glass">🍺</span>
+        <h1 style="font-size:44px;color:var(--yellow)">Split the S</h1>
+        <p style="font-size:13px;color:var(--muted);margin-top:8px">Duelo a dois · o árbitro é o telemóvel</p>
+      </div>
+      <div class="pad" style="padding-top:0">
+        <div class="card" style="border-left:3px solid var(--violet)">
+          <div class="label">Como se joga</div>
+          <ul class="rules">
+            <li>Cada um pega na sua garrafa com o <b style="color:var(--text)">S</b> do rótulo à vista.</li>
+            <li>Bebem ao mesmo tempo até o nível da cerveja ficar <b style="color:var(--yellow)">exatamente a meio do S</b>.</li>
+            <li>Quem ficar mais longe do meio, perde. Passar do S é derrota automática.</li>
+          </ul>
+        </div>
+
+        <div class="label" style="margin-top:18px">Os duelistas</div>
+        <input id="p1" maxlength="16" placeholder="Nome do jogador 1" autocomplete="off">
+        <div style="height:10px"></div>
+        <input id="p2" maxlength="16" placeholder="Nome do jogador 2" autocomplete="off">
+
+        <div class="label" style="margin-top:18px">Contagem decrescente</div>
+        <div class="row" id="cdopts"></div>
+
+        <div style="height:18px"></div>
+        <button class="btn" id="go" disabled>Começar duelo →</button>
+        <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:12px;line-height:1.5">
+          No fim, toca na metade de quem venceu.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ COUNTDOWN ══ -->
+  <section class="screen" id="s-count">
+    <div id="count">
+      <div style="font-size:12px;color:var(--muted);font-weight:700;letter-spacing:1px" id="cd-sub">PREPARAR</div>
+      <div class="cnum" id="cd-num">3</div>
+      <div style="font-size:13px;color:var(--mutedL)" id="cd-names"></div>
+    </div>
+    <div class="pad">
+      <button class="btn ghost" onclick="abort()">Cancelar</button>
+    </div>
+  </section>
+
+  <!-- ══ ESCOLHER VENCEDOR ══ -->
+  <section class="screen" id="s-pick">
+    <div style="flex-shrink:0;text-align:center;padding:14px 18px;border-bottom:1px solid var(--border)">
+      <div style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:1px">QUEM VENCEU?</div>
+      <div style="font-family:var(--sans);font-size:17px;font-weight:800;color:var(--yellow);margin-top:3px">Split the S</div>
+    </div>
+    <button class="half" id="half1" onclick="win(0)"></button>
+    <div style="height:1px;background:var(--border);flex-shrink:0"></div>
+    <button class="half" id="half2" onclick="win(1)"></button>
+    <div style="flex-shrink:0;padding:12px 16px calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--border)">
+      <button class="btn ghost" style="color:var(--danger);border-color:rgba(239,68,68,.4)" onclick="abort()">Cancelar duelo</button>
+    </div>
+  </section>
+
+  <!-- ══ RESULTADO ══ -->
+  <section class="screen" id="s-result">
+    <div class="scroll" style="position:relative" id="res-wrap">
+      <div class="pad" style="text-align:center;padding-top:40px">
+        <div style="font-size:60px" id="res-emoji">🏆</div>
+        <div style="font-size:12px;color:var(--success);font-weight:700;letter-spacing:1px;margin:14px 0 6px">VENCEDOR</div>
+        <div class="big" id="res-name">—</div>
+
+        <div class="score">
+          <div><b id="sc1" style="color:var(--yellow)">0</b><span id="sn1">—</span></div>
+          <div style="flex:0 0 40px;background:transparent;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:20px">vs</div>
+          <div><b id="sc2" style="color:var(--violet)">0</b><span id="sn2">—</span></div>
+        </div>
+
+        <div style="font-size:12px;color:var(--muted);margin-bottom:20px" id="res-tally"></div>
+      </div>
+    </div>
+    <div class="pad" style="padding-top:0">
+      <button class="btn" onclick="rematch()">Outra ronda 🍻</button>
+      <div style="height:8px"></div>
+      <button class="btn ghost" onclick="reset()">Novos jogadores</button>
+    </div>
+  </section>
+
+</div>
+
+<script>
+/* ── estado (em memória, sem storage) ── */
+var P = ["",""], S = [0,0], CD = 3, timer = null;
+
+var $ = function(id){ return document.getElementById(id); };
+function show(id){
+  ["s-setup","s-count","s-pick","s-result"].forEach(function(s){ $(s).classList.remove("on"); });
+  $(id).classList.add("on");
+}
+
+/* ── opções de contagem ── */
+[3,5,10].forEach(function(n){
+  var b = document.createElement("button");
+  b.className = "btn ghost"; b.style.flex = "1"; b.textContent = n + "s";
+  b.dataset.n = n;
+  b.onclick = function(){ CD = n; paintCd(); };
+  $("cdopts").appendChild(b);
+});
+function paintCd(){
+  [].forEach.call($("cdopts").children, function(b){
+    var on = +b.dataset.n === CD;
+    b.style.borderColor = on ? "var(--yellow)" : "var(--border)";
+    b.style.color = on ? "var(--yellow)" : "var(--mutedL)";
+  });
+}
+paintCd();
+
+/* ── validação dos nomes ── */
+function check(){
+  var a = $("p1").value.trim(), b = $("p2").value.trim();
+  $("go").disabled = !(a && b);
+}
+$("p1").oninput = check; $("p2").oninput = check;
+
+$("go").onclick = function(){
+  P = [$("p1").value.trim(), $("p2").value.trim()];
+  if (S[0] === 0 && S[1] === 0) { $("sn1").textContent = P[0]; $("sn2").textContent = P[1]; }
+  start();
+};
+
+/* ── beep simples ── */
+function beep(freq, dur){
+  try{
+    var C = window.AudioContext || window.webkitAudioContext; if(!C) return;
+    var ctx = new C(), o = ctx.createOscillator(), g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination); o.type = "sine"; o.frequency.value = freq;
+    g.gain.setValueAtTime(.0001, ctx.currentTime);
+    g.gain.linearRampToValueAtTime(.2, ctx.currentTime + .03);
+    g.gain.exponentialRampToValueAtTime(.0001, ctx.currentTime + dur);
+    o.start(); o.stop(ctx.currentTime + dur);
+  }catch(e){}
+}
+function buzz(ms){ if (navigator.vibrate) navigator.vibrate(ms); }
+
+/* ── contagem ── */
+function start(){
+  show("s-count");
+  $("cd-names").textContent = P[0] + "  vs  " + P[1];
+  var n = CD;
+  $("cd-sub").textContent = "PREPARAR";
+  render(n);
+  timer = setInterval(function(){
+    n--;
+    if (n > 0){ render(n); }
+    else {
+      clearInterval(timer); timer = null;
+      $("cd-sub").textContent = "BEBAM!";
+      var e = $("cd-num");
+      e.textContent = "GO!"; e.style.color = "var(--success)";
+      e.style.animation = "none"; void e.offsetWidth; e.style.animation = "pop .6s ease";
+      beep(880, .5); buzz([80,60,200]);
+      setTimeout(pick, 1600);
+    }
+  }, 1000);
+}
+function render(n){
+  var e = $("cd-num");
+  e.textContent = n; e.style.color = n <= 3 ? "var(--danger)" : "var(--yellow)";
+  e.style.animation = "none"; void e.offsetWidth; e.style.animation = "pop .6s ease";
+  beep(520, .18); buzz(40);
+}
+function abort(){
+  if (timer) { clearInterval(timer); timer = null; }
+  show("s-setup");
+}
+
+/* ── ecrã de escolha ── */
+function pick(){
+  paintHalf($("half1"), P[0], "DUELISTA 1", "#FFD60A", "trainL");
+  paintHalf($("half2"), P[1], "DUELISTA 2", "#7C3AED", "trainR");
+  show("s-pick");
+}
+function paintHalf(el, name, sub, color, anim){
+  el.style.background = "linear-gradient(160deg," + color + "22, #0D0D0D)";
+  var trains = "";
+  for (var i = 0; i < 3; i++){
+    trains += '<div class="train" style="top:' + (18 + i*27) + '%;animation:' + anim + ' ' +
+      (11 + i*5) + 's ease-in-out ' + (-i*4) + 's infinite alternate">' +
+      '<i style="background:' + color + '"></i><i style="background:' + color + '"></i>' +
+      '<i style="background:' + color + '"></i><i style="background:' + color + '"></i></div>';
+  }
+  el.innerHTML = trains +
+    '<div style="position:relative;text-align:center;width:100%">' +
+      '<div style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:1px;margin-bottom:10px">' + sub + '</div>' +
+      '<div class="avatar" style="background:' + color + '">' + name.charAt(0).toUpperCase() + '</div>' +
+      '<div class="pname">' + esc(name) + '</div>' +
+      '<div class="pill" style="background:' + color + '22;border:1.5px solid ' + color + '66;color:' + color + '">🏆 Venceu</div>' +
+    '</div>';
+}
+function esc(s){ return s.replace(/[&<>"]/g, function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+
+/* ── resultado ── */
+function win(i){
+  S[i]++;
+  var color = i === 0 ? "#FFD60A" : "#7C3AED";
+  $("res-name").textContent = P[i];
+  $("res-name").style.color = color;
+  $("res-emoji").textContent = "🏆";
+  $("sc1").textContent = S[0]; $("sc2").textContent = S[1];
+  $("sn1").textContent = P[0]; $("sn2").textContent = P[1];
+  var total = S[0] + S[1];
+  $("res-tally").textContent = total + (total === 1 ? " ronda jogada" : " rondas jogadas");
+  beep(660, .25); setTimeout(function(){ beep(880, .45); }, 140); buzz([60,50,120]);
+  show("s-result");
+  drop(color);
+}
+function drop(color){
+  var w = $("res-wrap");
+  [].forEach.call(w.querySelectorAll(".confetti"), function(n){ n.remove(); });
+  for (var i = 0; i < 22; i++){
+    var d = document.createElement("div");
+    d.className = "confetti";
+    d.style.left = (Math.random()*100) + "%";
+    d.style.background = i % 3 === 0 ? color : (i % 3 === 1 ? "#22C55E" : "#fff");
+    d.style.animation = "fall " + (1.5 + Math.random()*1.4) + "s ease-out " + (Math.random()*.4) + "s forwards";
+    w.appendChild(d);
+  }
+}
+function rematch(){ start(); }
+function reset(){
+  S = [0,0];
+  $("p1").value = ""; $("p2").value = ""; check();
+  $("sc1").textContent = "0"; $("sc2").textContent = "0";
+  show("s-setup");
+}
+</script>
+</body>
+</html>
