@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0D0D0D">
+<title>Split the S 🍺</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#0D0D0D;--soft:#161616;--surface:#1C1C1C;--border:#2A2A2A;--yellow:#FFD60A;--violet:#7C3AED;
+    --danger:#EF4444;--success:#22C55E;--muted:#6B6B6B;--mutedL:#A0A0A0;--sans:'Syne',sans-serif;--body:'DM Sans',sans-serif}
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{background:var(--bg);color:#fff;font-family:var(--body);overflow:hidden}
+  .app{height:100dvh;display:flex;flex-direction:column;max-width:520px;margin:0 auto}
+  .screen{flex:1;min-height:0;display:none;flex-direction:column}.screen.on{display:flex}
+  .pad{padding:20px 18px}.scroll{flex:1;min-height:0;overflow-y:auto}
+  h1{font-family:var(--sans);font-weight:800;line-height:1;letter-spacing:-.02em}
+  .label{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;font-family:var(--sans)}
+  .card{background:var(--surface);border-radius:12px;padding:16px;margin-bottom:10px}
+  input{width:100%;padding:14px 16px;background:var(--surface);border:1.5px solid var(--border);color:#fff;
+    font-family:var(--body);font-size:15px;border-radius:12px;outline:none}
+  input:focus{border-color:var(--yellow);background:var(--soft)}
+  input::placeholder{color:var(--muted)}
+  .btn{width:100%;padding:16px 20px;border:none;border-radius:12px;font-family:var(--sans);font-weight:700;
+    font-size:15px;cursor:pointer;background:var(--yellow);color:#0D0D0D}
+  .btn:active{transform:scale(.97)}.btn:disabled{background:var(--border);color:var(--muted)}
+  .btn.ghost{background:transparent;border:1.5px solid var(--border);color:var(--mutedL);font-family:var(--body);font-weight:500;font-size:14px;padding:12px 16px}
+  .row{display:flex;gap:8px}
+  .hero{text-align:center;padding:24px 18px 16px}
+  .rules li{font-size:13px;color:var(--mutedL);line-height:1.7;margin-left:18px;margin-bottom:4px}
+  #count{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+  .cnum{font-family:var(--sans);font-size:150px;font-weight:800;color:var(--yellow);line-height:1;animation:pop .6s ease}
+  @keyframes pop{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.15);opacity:1}100%{transform:scale(1)}}
+  .half{flex:1;position:relative;overflow:hidden;border:none;cursor:pointer;width:100%;display:flex;
+    align-items:center;justify-content:center;padding:18px 22px;background:transparent}
+  .train{position:absolute;left:0;display:flex;width:max-content;opacity:.18;pointer-events:none;will-change:transform}
+  .train i{display:block;width:42px;height:15px;border-radius:4px;margin-right:7px}
+  .train i:first-child{width:54px;border-radius:5px 9px 9px 5px}
+  @keyframes trainL{from{transform:translateX(-260px)}to{transform:translateX(100vw)}}
+  @keyframes trainR{from{transform:translateX(100vw)}to{transform:translateX(-260px)}}
+  .avatar{width:62px;height:62px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-family:var(--sans);font-size:26px;font-weight:800;color:#0D0D0D;margin:0 auto 12px}
+  .pname{font-family:var(--sans);font-size:30px;font-weight:800;line-height:1.1;word-break:break-word}
+  .pill{display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:8px 18px;border-radius:99px;font-size:13px;font-weight:700;font-family:var(--sans)}
+  .confetti{position:absolute;top:0;width:9px;height:15px;border-radius:2px}
+  @keyframes fall{0%{transform:translateY(-20px) rotate(0);opacity:1}100%{transform:translateY(110vh) rotate(720deg);opacity:0}}
+  .big{font-family:var(--sans);font-size:60px;font-weight:800;line-height:1}
+  .lbrow{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--surface);border-radius:12px;margin-bottom:8px}
+  .rank{font-family:var(--sans);font-size:20px;font-weight:800;width:30px;text-align:center;flex-shrink:0}
+  .bar{height:5px;background:var(--bg);border-radius:99px;margin-top:6px;overflow:hidden}
+  .bar>div{height:100%;background:var(--yellow);border-radius:99px}
+  .dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+  .prow{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+  .prow input{flex:1}
+  .rm{width:44px;height:48px;flex-shrink:0;border-radius:12px;background:transparent;border:1.5px solid var(--border);
+    color:var(--muted);font-size:18px;cursor:pointer}
+  .pcard{display:flex;align-items:center;gap:14px;width:100%;padding:16px;border:none;border-radius:12px;
+    margin-bottom:10px;cursor:pointer;text-align:left}
+  .pcard .av{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-family:var(--sans);font-size:20px;font-weight:800;color:#0D0D0D;flex-shrink:0}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- SETUP -->
+  <section class="screen on" id="s-setup">
+    <div class="scroll">
+      <div class="hero">
+        <span style="font-size:54px;display:block;margin-bottom:8px">🍺</span>
+        <h1 style="font-size:42px;color:var(--yellow)">Split the S</h1>
+        <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:10px;font-size:12px;color:var(--muted)">
+          <span class="dot" id="netdot" style="background:var(--muted)"></span><span id="netmsg">a ligar…</span>
+        </div>
+      </div>
+      <div class="pad" style="padding-top:0">
+        <div class="card" style="border-left:3px solid var(--violet)">
+          <div class="label">Como se joga</div>
+          <ul class="rules">
+            <li>Cada um com a garrafa e o <b style="color:#fff">S</b> do rótulo à vista.</li>
+            <li>Bebem até o nível ficar <b style="color:var(--yellow)">exatamente a meio do S</b>.</li>
+            <li>Quem ficar mais longe, perde. Passar do S é derrota.</li>
+          </ul>
+        </div>
+        <div class="label" style="margin-top:18px">Os duelistas</div>
+        <datalist id="known"></datalist>
+        <div id="plist"></div>
+        <button class="btn ghost" id="addp" style="margin-top:2px">+ Adicionar jogador</button>
+
+        <div class="label" style="margin-top:18px">Contagem</div>
+        <div class="row" id="cdopts"></div>
+        <div style="height:16px"></div>
+        <button class="btn" id="go" disabled>Começar duelo →</button>
+        <div style="height:8px"></div>
+        <button class="btn ghost" id="lbbtn">🏆 Ver ranking</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- COUNTDOWN -->
+  <section class="screen" id="s-count">
+    <div id="count">
+      <div style="font-size:12px;color:var(--muted);font-weight:700;letter-spacing:1px" id="cd-sub">PREPARAR</div>
+      <div class="cnum" id="cd-num">3</div>
+      <div style="font-size:13px;color:var(--mutedL)" id="cd-names"></div>
+    </div>
+    <div class="pad"><button class="btn ghost" id="cancel1">Cancelar</button></div>
+  </section>
+
+  <!-- PICK -->
+  <section class="screen" id="s-pick">
+    <div style="flex-shrink:0;text-align:center;padding:14px 18px;border-bottom:1px solid var(--border)">
+      <div style="font-size:11px;color:var(--muted);font-weight:700;letter-spacing:1px">QUEM VENCEU?</div>
+      <div style="font-family:var(--sans);font-size:17px;font-weight:800;color:var(--yellow);margin-top:3px">Split the S</div>
+    </div>
+    <div id="pickwrap" style="flex:1;min-height:0;display:flex;flex-direction:column"></div>
+    <div style="flex-shrink:0;padding:12px 16px calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--border)">
+      <button class="btn ghost" id="cancel2" style="color:var(--danger);border-color:rgba(239,68,68,.4)">Cancelar duelo</button>
+    </div>
+  </section>
+
+  <!-- RESULT -->
+  <section class="screen" id="s-result">
+    <div class="scroll" style="position:relative" id="res-wrap">
+      <div class="pad" style="text-align:center;padding-top:36px">
+        <div style="font-size:56px">🏆</div>
+        <div style="font-size:12px;color:var(--success);font-weight:700;letter-spacing:1px;margin:14px 0 6px">VENCEDOR</div>
+        <div class="big" id="res-name">—</div>
+        <div style="font-size:13px;color:var(--muted);margin-top:14px" id="res-sub"></div>
+      </div>
+    </div>
+    <div class="pad" style="padding-top:0">
+      <button class="btn" id="again">Outra ronda 🍻</button>
+      <div style="height:8px"></div>
+      <div class="row">
+        <button class="btn ghost" style="flex:1" id="lbbtn2">🏆 Ranking</button>
+        <button class="btn ghost" style="flex:1" id="newp">Novos jogadores</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- LEADERBOARD -->
+  <section class="screen" id="s-lb">
+    <div style="flex-shrink:0;display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--border)">
+      <div style="flex:1">
+        <div class="label" style="margin:0">Ao vivo</div>
+        <h1 style="font-size:26px;color:var(--yellow)">Ranking</h1>
+      </div>
+      <button id="closelb" style="width:38px;height:38px;border-radius:50%;background:var(--surface);
+        border:1px solid var(--border);color:#fff;font-size:16px;cursor:pointer">✕</button>
+    </div>
+    <div class="scroll pad" id="lb"></div>
+  </section>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, doc, onSnapshot, runTransaction, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* ═══════════════════════════════════════════════════
+   COLA AQUI O apiKey (o mesmo que tens no firebase.js)
+   ═══════════════════════════════════════════════════ */
+const CFG = {
+  apiKey:            "AIzaSyCeETmw8mn2JO_NN-H88s7Kesgaej975r4",
+  authDomain:        "aniversariometro.firebaseapp.com",
+  projectId:         "aniversariometro",
+  storageBucket:     "aniversariometro.firebasestorage.app",
+  messagingSenderId: "438352605600",
+  appId:             "1:438352605600:web:fa40a0b2731e3a443f34c5",
+};
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const norm = s => s.trim().toLowerCase().slice(0,24);
+
+let db = null, online = false;
+const local = {};
+
+function net(ok,msg){
+  online = ok;
+  $("netdot").style.background = ok ? "var(--success)" : "var(--danger)";
+  $("netmsg").textContent = msg;
+}
+
+(async () => {
+  if (CFG.apiKey.indexOf("PASTE") === 0){ net(false,"ranking local (falta apiKey)"); paint([]); return; }
+  try{
+    const app = initializeApp(CFG);
+    await signInAnonymously(getAuth(app));
+    db = getFirestore(app);
+    net(true,"ranking partilhado");
+    onSnapshot(collection(db,"splitS"),
+      s => paint(s.docs.map(d => ({ id:d.id, ...d.data() }))),
+      () => net(false,"sem ligação — ranking local"));
+  }catch(e){ net(false,"sem ligação — ranking local"); paint([]); }
+})();
+
+async function record(winner, losers){
+  const all = [{n:winner,k:"w"}].concat(losers.map(n => ({n:n,k:"l"})));
+  if (!db || !online){
+    all.forEach(x => {
+      const id = norm(x.n);
+      local[id] = local[id] || { id:id, name:x.n, w:0, l:0 };
+      local[id][x.k]++; local[id].name = x.n;
+    });
+    paint(Object.keys(local).map(k => local[k]));
+    return;
+  }
+  try{
+    await runTransaction(db, async tx => {
+      const refs = all.map(x => doc(db,"splitS",norm(x.n)));
+      const snaps = [];
+      for (let i=0;i<refs.length;i++) snaps.push(await tx.get(refs[i]));  // ler tudo primeiro
+      for (let i=0;i<refs.length;i++){
+        const d = snaps[i].data() || {};
+        tx.set(refs[i], {
+          name: all[i].n,
+          w: (d.w||0) + (all[i].k === "w" ? 1 : 0),
+          l: (d.l||0) + (all[i].k === "l" ? 1 : 0),
+          at: serverTimestamp(),
+        });
+      }
+    });
+  }catch(e){}
+}
+
+function paint(list){
+  const dl = $("known");
+  if (dl) dl.innerHTML = list.map(p => '<option value="'+esc(p.name||p.id)+'">').join("");
+  const rows = list.filter(p => (p.w||0)+(p.l||0) > 0)
+                   .sort((a,b) => (b.w||0)-(a.w||0) || (a.l||0)-(b.l||0));
+  const box = $("lb");
+  if (!rows.length){
+    box.innerHTML = '<div class="card" style="text-align:center;color:var(--muted);font-size:13px;padding:28px">Ainda sem duelos. Joguem o primeiro!</div>';
+    return;
+  }
+  let max = 1; rows.forEach(p => { if ((p.w||0) > max) max = p.w||0; });
+  box.innerHTML = rows.map((p,i) => {
+    const w = p.w||0, l = p.l||0, t = w+l, pct = Math.round(w/t*100);
+    const medal = i===0?"🥇":i===1?"🥈":i===2?"🥉":(i+1);
+    const col = i===0?"var(--yellow)":i===1?"#E2E8F0":i===2?"#F97316":"var(--muted)";
+    return '<div class="lbrow"><div class="rank" style="color:'+col+'">'+medal+'</div>'+
+      '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(p.name||p.id)+'</div>'+
+      '<div style="font-size:11px;color:var(--muted);margin-top:2px">'+w+'V · '+l+'D · '+pct+'%</div>'+
+      '<div class="bar"><div style="width:'+Math.round(w/max*100)+'%"></div></div></div>'+
+      '<div style="font-family:var(--sans);font-size:22px;font-weight:800;color:var(--yellow);flex-shrink:0">'+w+'</div></div>';
+  }).join("");
+}
+
+/* ── jogo ── */
+let P = [], CD = 3, timer = null;
+const COLORS = ["#FFD60A","#7C3AED","#22C55E","#EF4444","#38BDF8","#F97316","#EC4899","#A3E635"];
+const SCREENS = ["s-setup","s-count","s-pick","s-result","s-lb"];
+const show = id => { SCREENS.forEach(s => $(s).classList.remove("on")); $(id).classList.add("on"); };
+
+/* lista dinâmica de jogadores */
+let slots = ["",""];
+function renderSlots(){
+  const box = $("plist");
+  box.innerHTML = slots.map((v,i) =>
+    '<div class="prow"><input list="known" maxlength="16" autocomplete="off" data-i="'+i+'" '+
+    'placeholder="Jogador '+(i+1)+'" value="'+esc(v)+'">'+
+    (slots.length > 2 ? '<button class="rm" data-rm="'+i+'">✕</button>' : '') + '</div>'
+  ).join("");
+  Array.prototype.forEach.call(box.querySelectorAll("input"), inp => {
+    inp.oninput = e => { slots[+e.target.dataset.i] = e.target.value; check(); };
+  });
+  Array.prototype.forEach.call(box.querySelectorAll("[data-rm]"), b => {
+    b.onclick = () => { slots.splice(+b.dataset.rm,1); renderSlots(); check(); };
+  });
+  $("addp").style.display = slots.length >= 8 ? "none" : "block";
+  check();
+}
+function check(){
+  const filled = slots.filter(s => s.trim()).length;
+  $("go").disabled = filled < 2 || filled !== slots.filter(s=>s.trim()).length || slots.some(s=>!s.trim());
+  $("go").textContent = filled >= 2 ? ("Começar duelo (" + filled + ") →") : "Começar duelo →";
+}
+$("addp").onclick = () => { if (slots.length < 8){ slots.push(""); renderSlots(); } };
+renderSlots();
+
+[3,5,10].forEach(n => {
+  const b = document.createElement("button");
+  b.className = "btn ghost"; b.style.flex = "1"; b.textContent = n+"s"; b.dataset.n = n;
+  b.onclick = () => { CD = n; paintCd(); };
+  $("cdopts").appendChild(b);
+});
+function paintCd(){
+  Array.prototype.forEach.call($("cdopts").children, b => {
+    const on = +b.dataset.n === CD;
+    b.style.borderColor = on ? "var(--yellow)" : "var(--border)";
+    b.style.color = on ? "var(--yellow)" : "var(--mutedL)";
+  });
+}
+paintCd();
+
+function beep(f,d){
+  try{
+    const C = window.AudioContext || window.webkitAudioContext; if(!C) return;
+    const c = new C(), o = c.createOscillator(), g = c.createGain();
+    o.connect(g); g.connect(c.destination); o.type = "sine"; o.frequency.value = f;
+    g.gain.setValueAtTime(.0001,c.currentTime);
+    g.gain.linearRampToValueAtTime(.2,c.currentTime+.03);
+    g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+d);
+    o.start(); o.stop(c.currentTime+d);
+  }catch(e){}
+}
+const buzz = p => { if (navigator.vibrate) navigator.vibrate(p); };
+
+function tickUI(n){
+  const e = $("cd-num"); e.textContent = n;
+  e.style.color = n <= 3 ? "var(--danger)" : "var(--yellow)";
+  e.style.animation = "none"; void e.offsetWidth; e.style.animation = "pop .6s ease";
+  beep(520,.18); buzz(40);
+}
+function start(){
+  show("s-count");
+  $("cd-names").textContent = P.join("  vs  ");
+  let n = CD; $("cd-sub").textContent = "PREPARAR"; tickUI(n);
+  timer = setInterval(() => {
+    n--;
+    if (n > 0){ tickUI(n); return; }
+    clearInterval(timer); timer = null;
+    $("cd-sub").textContent = "BEBAM!";
+    const e = $("cd-num"); e.textContent = "GO!"; e.style.color = "var(--success)";
+    e.style.animation = "none"; void e.offsetWidth; e.style.animation = "pop .6s ease";
+    beep(880,.5); buzz([80,60,200]);
+    setTimeout(pick,1600);
+  },1000);
+}
+function abort(){ if (timer){ clearInterval(timer); timer = null; } show("s-setup"); }
+
+/* ecrã de escolha: 2 jogadores = metades; 3+ = lista */
+function pick(){
+  const wrap = $("pickwrap");
+  wrap.innerHTML = "";
+  if (P.length === 2){
+    P.forEach((name,i) => {
+      const color = COLORS[i];
+      const b = document.createElement("button");
+      b.className = "half";
+      b.style.background = "linear-gradient(160deg,"+color+"22,#0D0D0D)";
+      let t = "";
+      for (let k=0;k<3;k++){
+        t += '<div class="train" style="top:'+(18+k*27)+'%;animation:'+(i===0?"trainL":"trainR")+' '+
+          (11+k*5)+'s ease-in-out '+(-k*4)+'s infinite alternate">'+
+          '<i style="background:'+color+'"></i><i style="background:'+color+'"></i>'+
+          '<i style="background:'+color+'"></i><i style="background:'+color+'"></i></div>';
+      }
+      b.innerHTML = t + '<div style="position:relative;text-align:center;width:100%">'+
+        '<div class="avatar" style="background:'+color+'">'+esc(name.charAt(0).toUpperCase())+'</div>'+
+        '<div class="pname">'+esc(name)+'</div>'+
+        '<div class="pill" style="background:'+color+'22;border:1.5px solid '+color+'66;color:'+color+'">🏆 Venceu</div></div>';
+      b.onclick = () => win(i);
+      wrap.appendChild(b);
+      if (i === 0){
+        const sep = document.createElement("div");
+        sep.style.cssText = "height:1px;background:var(--border);flex-shrink:0";
+        wrap.appendChild(sep);
+      }
+    });
+  } else {
+    const list = document.createElement("div");
+    list.className = "scroll pad";
+    list.innerHTML = P.map((name,i) => {
+      const color = COLORS[i % COLORS.length];
+      return '<button class="pcard" data-i="'+i+'" style="background:linear-gradient(120deg,'+color+'22,var(--surface))">'+
+        '<div class="av" style="background:'+color+'">'+esc(name.charAt(0).toUpperCase())+'</div>'+
+        '<div style="flex:1;min-width:0"><div style="font-family:var(--sans);font-size:20px;font-weight:800;'+
+        'white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(name)+'</div></div>'+
+        '<div style="font-size:20px;flex-shrink:0">🏆</div></button>';
+    }).join("");
+    wrap.appendChild(list);
+    Array.prototype.forEach.call(list.querySelectorAll(".pcard"), b => {
+      b.onclick = () => win(+b.dataset.i);
+    });
+  }
+  show("s-pick");
+}
+
+function drop(color){
+  const w = $("res-wrap");
+  Array.prototype.forEach.call(w.querySelectorAll(".confetti"), n => n.remove());
+  for (let i=0;i<22;i++){
+    const d = document.createElement("div"); d.className = "confetti";
+    d.style.left = (Math.random()*100)+"%";
+    d.style.background = i%3===0 ? color : (i%3===1 ? "#22C55E" : "#fff");
+    d.style.animation = "fall "+(1.5+Math.random()*1.4)+"s ease-out "+(Math.random()*.4)+"s forwards";
+    w.appendChild(d);
+  }
+}
+function win(i){
+  const w = P[i], losers = P.filter((_,k) => k !== i), color = COLORS[i % COLORS.length];
+  $("res-name").textContent = w; $("res-name").style.color = color;
+  $("res-sub").textContent = (online ? "Guardado no ranking" : "Gua
